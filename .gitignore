@@ -1,4 +1,8 @@
 images/*
 convert
+*.jpg
+*.jpeg
+*.png
+*.gif
 !*.go
 !go*

@@ -19,13 +19,14 @@ func main() {
 	cli := &CLI{os.Stdin, os.Stdout, os.Stderr}
 	os.Exit(cli.Run())
 }
+
 func (c *CLI) Run() int {
 	f_in := flag.String("i", "jpg", "file format to convert from")
 	f_out := flag.String("o", "png", "file format to convert to")
 	f_v := flag.Bool("v", false, "show debug messages")
 	flag.Parse()
 	if *f_v {
-		fmt.Fprintln(c.out, "in=", *f_in, "out=", *f_out, flag.Args())
+		fmt.Fprintln(c.out, "in=", *f_in, ", out=", *f_out, flag.Args())
 	}
 	if err := imgconv.IsValidExt(*f_in); err != nil {
 		fmt.Fprintln(c.err, err)
@@ -39,6 +40,14 @@ func (c *CLI) Run() int {
 		fmt.Fprintln(c.err, "invalid argument: missing target dir")
 		return 1
 	}
+	for _, d := range flag.Args() {
+		if info, err := os.Stat(d); err != nil {
+			fmt.Fprintln(c.err, "error: "+d+": no such file or directory")
+			return 1
+		} else if *f_v {
+			fmt.Fprintln(c.err, info.Name())
+		}
+	}
 	n := 0
 	for _, d := range flag.Args() {
 		err := filepath.Walk(d,
@@ -46,10 +55,7 @@ func (c *CLI) Run() int {
 				if err != nil {
 					return err
 				}
-				if info.IsDir() {
-					return nil
-				}
-				if ext := filepath.Ext(p); ext != "."+*f_in {
+				if info.IsDir() || filepath.Ext(p) != "."+*f_in {
 					return nil
 				}
 				if err := imgconv.Convert(p, *f_in, *f_out); err != nil {
@@ -57,7 +63,7 @@ func (c *CLI) Run() int {
 					return nil
 				}
 				if *f_v {
-					fmt.Fprintln(c.err, p, "\t=>\t", imgconv.ConvertExt(p, *f_out))
+					fmt.Fprintln(c.out, p, "\t=>\n", imgconv.ConvertExt(p, *f_out))
 				}
 				n += 1
 				return nil
